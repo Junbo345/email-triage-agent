@@ -44,8 +44,7 @@ function getNewestInboundMessage_(thread) {
 function isSelfSent_(message) {
   const me = Session.getActiveUser().getEmail();
   const from = (message.getFrom() || "").toLowerCase();
-  const to = (message.getTo() || "").toLowerCase();
-  return from.includes(me.toLowerCase()) || to.includes(me.toLowerCase());
+  return from.includes(me.toLowerCase());
 }
 
 function extractMessageData_(thread, message) {

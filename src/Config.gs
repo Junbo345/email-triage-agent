@@ -2,8 +2,8 @@ const ACTION_MODE = "dry_run";
 const MAX_THREADS_PER_RUN = 25;
 const PROCESSED_LABEL_NAME = "AI_TRIAGE_PROCESSED";
 const LOG_SHEET_NAME = "AI Triage Log";
-const DEFAULT_MODEL_NAME = "gpt-4.1-mini";
-const OPENAI_API_URL = "https://api.openai.com/v1/chat/completions";
+const DEFAULT_GEMINI_MODEL_NAME = "gemini-3.1-flash-lite";
+const GEMINI_API_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models/";
 const LOCATION_UNKNOWN = "unknown";
 const ACTION_ACCEPT = "accept";
 const ACTION_REJECT = "reject";
@@ -15,15 +15,15 @@ const INTENT_NON_SERVICE = "non_service";
 const INTENT_UNCERTAIN = "uncertain";
 
 function getApiKey_() {
-  const value = PropertiesService.getScriptProperties().getProperty("LLM_API_KEY");
+  const value = PropertiesService.getScriptProperties().getProperty("GEMINI_API_KEY");
   if (!value) {
-    throw new Error("Missing Script Property: LLM_API_KEY");
+    throw new Error("Missing Script Property: GEMINI_API_KEY");
   }
   return value;
 }
 
 function getModelName_() {
-  return PropertiesService.getScriptProperties().getProperty("LLM_MODEL") || DEFAULT_MODEL_NAME;
+  return PropertiesService.getScriptProperties().getProperty("GEMINI_MODEL") || DEFAULT_GEMINI_MODEL_NAME;
 }
 
 function getScriptTimezone_() {

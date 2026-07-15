@@ -1,6 +1,10 @@
+function classifyEmail(payload) {
+  return classifyEmail_(payload);
+}
+
 function classifyEmail_(payload) {
   const prompt = buildClassificationPrompt_(payload);
-  const responseText = callOpenAiJson_(prompt);
+  const responseText = callGeminiJson_(prompt);
   const parsed = parseClassificationResponse_(responseText);
   return validateClassification_(parsed, payload);
 }
@@ -30,46 +34,60 @@ function buildClassificationPrompt_(payload) {
   ].join("\n");
 }
 
-function callOpenAiJson_(prompt) {
-  const apiKey = getApiKey_();
-  const payload = {
-    model: getModelName_(),
-    temperature: 0,
-    response_format: { type: "json_object" },
-    messages: [
+function callGeminiJson_(prompt) {
+  var apiKey = getApiKey_();
+  var modelName = getModelName_();
+  var url = GEMINI_API_BASE_URL + encodeURIComponent(modelName) + ":generateContent";
+  var payload = {
+    contents: [
       {
-        role: "system",
-        content:
-          "You extract structured data from customer emails. Be strict, concise, and faithful to the text.",
+        role: "user",
+        parts: [
+          {
+            text: prompt,
+          },
+        ],
       },
-      { role: "user", content: prompt },
     ],
+    generationConfig: {
+      temperature: 0,
+      responseMimeType: "application/json",
+    },
   };
 
-  const response = UrlFetchApp.fetch(OPENAI_API_URL, {
+  var response = UrlFetchApp.fetch(url, {
     method: "post",
     contentType: "application/json",
     muteHttpExceptions: true,
     headers: {
-      Authorization: "Bearer " + apiKey,
+      "x-goog-api-key": apiKey,
     },
     payload: JSON.stringify(payload),
   });
 
-  const code = response.getResponseCode();
-  const body = response.getContentText();
+  var code = response.getResponseCode();
+  var body = response.getContentText();
   if (code < 200 || code >= 300) {
-    throw new Error("OpenAI request failed: " + code + " " + body);
+    throw new Error("Gemini request failed: " + code + " " + body);
   }
 
-  const decoded = JSON.parse(body);
-  const choices = decoded && decoded.choices ? decoded.choices : [];
-  const firstChoice = choices.length > 0 ? choices[0] : null;
-  const message = firstChoice && firstChoice.message ? firstChoice.message : null;
-  const text = message ? message.content : "";
-  if (!text) {
-    throw new Error("OpenAI returned no structured content");
+  var decoded = JSON.parse(body);
+  var candidates = decoded && decoded.candidates ? decoded.candidates : [];
+  if (!candidates.length) {
+    throw new Error("Gemini returned no candidates");
   }
+
+  var candidate = candidates[0];
+  if (!candidate.content || !candidate.content.parts || !candidate.content.parts.length) {
+    throw new Error("Gemini returned no content parts");
+  }
+
+  var text = candidate.content.parts[0] && candidate.content.parts[0].text ? candidate.content.parts[0].text : "";
+  if (!text) {
+    var finishReason = candidate.finishReason || "unknown";
+    throw new Error("Gemini returned empty text or blocked content: " + finishReason);
+  }
+
   return text;
 }
 
@@ -82,11 +100,15 @@ function parseClassificationResponse_(responseText) {
 }
 
 function validateClassification_(candidate, payload) {
-  const intent = normalizeIntent_(candidate.intent);
-  const serviceLocationText = normalizeString_(candidate.service_location_text || candidate.location_text || "");
-  const evidence = normalizeEvidence_(candidate.evidence, payload);
-  const confidence = clampNumber_(candidate.confidence, 0, 1, 0.5);
-  const uncertaintyReason = normalizeString_(candidate.uncertainty_reason || "");
+  if (!candidate || typeof candidate !== "object") {
+    throw new Error("Invalid classifier schema: empty response");
+  }
+
+  var intent = normalizeIntent_(candidate.intent);
+  var serviceLocationText = normalizeString_(candidate.service_location_text || candidate.location_text || "");
+  var evidence = normalizeEvidence_(candidate.evidence, payload);
+  var confidence = clampNumber_(candidate.confidence, 0, 1, 0.5);
+  var uncertaintyReason = normalizeString_(candidate.uncertainty_reason || "");
 
   return {
     intent: intent,
@@ -98,7 +120,7 @@ function validateClassification_(candidate, payload) {
 }
 
 function normalizeIntent_(value) {
-  const intent = normalizeString_(value).toLowerCase();
+  var intent = normalizeString_(value).toLowerCase();
   if (intent === INTENT_SERVICE_REQUEST || intent === INTENT_NON_SERVICE || intent === INTENT_UNCERTAIN) {
     return intent;
   }
@@ -106,20 +128,26 @@ function normalizeIntent_(value) {
 }
 
 function normalizeEvidence_(value, payload) {
-  const list = Array.isArray(value) ? value : [];
-  const evidence = list.map((item) => normalizeString_(item)).filter(Boolean).slice(0, 3);
+  var list = Array.isArray(value) ? value : [];
+  var evidence = list.map(function (item) {
+    return normalizeString_(item);
+  }).filter(function (item) {
+    return Boolean(item);
+  }).slice(0, 3);
   if (evidence.length > 0) return evidence;
 
-  const fallback = [];
+  var fallback = [];
   if (payload.subject) fallback.push(payload.subject);
   if (payload.body) fallback.push(firstMeaningfulLine_(payload.body));
-  return fallback.filter(Boolean).slice(0, 2);
+  return fallback.filter(function (item) {
+    return Boolean(item);
+  }).slice(0, 2);
 }
 
 function firstMeaningfulLine_(text) {
-  const lines = (text || "").split("\n");
+  var lines = (text || "").split("\n");
   for (var i = 0; i < lines.length; i += 1) {
-    const line = normalizeString_(lines[i]);
+    var line = normalizeString_(lines[i]);
     if (line) return line;
   }
   return "";
@@ -130,7 +158,7 @@ function normalizeString_(value) {
 }
 
 function clampNumber_(value, minValue, maxValue, fallback) {
-  const numeric = Number(value);
+  var numeric = Number(value);
   if (Number.isFinite(numeric)) {
     return Math.min(maxValue, Math.max(minValue, numeric));
   }

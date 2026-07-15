@@ -2,6 +2,10 @@
 
 Simple Google Apps Script MVP for an email triage assessment.
 
+GitHub repo note:
+- default branch should be `main`
+- the working source lives in `src/`
+
 ## 1. Project Purpose
 
 This project reads messages from a dedicated Gmail inbox, classifies whether each email is a real service request, extracts the requested service location, resolves whether that location is inside Oakville, Ontario, and then either drafts, sends, clarifies, ignores, or flags the message for manual review.
@@ -77,16 +81,16 @@ Do not automate account creation, phone verification, CAPTCHA, or authorization.
 3. Add the files from `src/` into the project.
 4. Save the project.
 
-## 8. Add the LLM API Key
+## 8. Add the Gemini API Key
 
-Store the OpenAI key in Script Properties:
+Store the Gemini key in Script Properties:
 
-- key: `LLM_API_KEY`
-- optional model key: `LLM_MODEL`
+- key: `GEMINI_API_KEY`
+- optional model key: `GEMINI_MODEL`
 
 Recommended model default:
 
-- `gpt-4.1-mini`
+- `gemini-3.1-flash-lite`
 
 ## 9. Authorize Gmail Access
 
@@ -232,7 +236,7 @@ Every processed message logs the classification and action decision to Google Sh
 ## 21. Known Limitations
 
 - Gmail and Apps Script authorization are manual.
-- The OpenAI call depends on your Script Properties key.
+- The Gemini call depends on your Script Properties key.
 - Attachments are ignored.
 - HTML cleanup is basic.
 - The Oakville resolver uses deterministic text rules, not geospatial boundary data.
@@ -250,9 +254,9 @@ For a real tax or professional-services company, the mailbox layer would likely 
 
 ## 24. Troubleshooting
 
-- Missing API key: set `LLM_API_KEY` in Script Properties.
+- Missing API key: set `GEMINI_API_KEY` in Script Properties.
+- If you want to override the default model, set `GEMINI_MODEL`.
 - Gmail authorization error: rerun `processInbox()` and approve permissions.
 - Log sheet creation error: verify the Apps Script project can access Drive and Sheets.
-- Invalid model JSON: inspect the OpenAI response and keep `dry_run` enabled until stable.
+- Invalid model JSON: inspect the Gemini response and keep `dry_run` enabled until stable.
 - Unexpected replies: confirm `ACTION_MODE` is still `dry_run` or `draft`.
-
