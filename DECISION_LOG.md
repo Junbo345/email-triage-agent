@@ -21,7 +21,7 @@
 - Hardened the classifier prompt against prompt injection by stating that email subject/body are untrusted data and that the model must classify only according to our rules.
 - Clarified that outside-service-area inquiries are still `service_request`; the deterministic resolver, not Gemini, decides whether to reject them.
 - Fixed an early inbox-processing issue where self-sent detection could skip valid inbound messages. The final check only treats messages as self-sent when the sender matches the active user.
-- Decided that `dry_run` should avoid Gmail label/reply writes. Later message-ID deduplication added Script Properties writes so repeated runs do not reply or repeatedly process the same message ID.
+- Decided that `dry_run` should avoid Gmail label/reply writes and should not create processed-message state. This keeps the normal assessment workflow possible: dry run, inspect logs, switch to draft, and process the same batch again.
 - Added Google Sheets audit logging with run-level metadata so each `processInbox()` call can be filtered by `run_id`.
 - Added raw email body, cleaned body, Gemini raw response, normalized Gemini JSON, evidence, confidence, and uncertainty reason to the audit log so classification mistakes can be explained later.
 
@@ -46,11 +46,14 @@
 - Changed deduplication from thread-label-only to message-ID-based Script Properties so a new inbound message in an existing thread can still be processed.
 - Added `processing_started`, `action_completed`, `logging_failed`, and `processing_failed` audit statuses to reduce duplicate-reply risk if final logging fails after an action completes.
 - Tightened Oakville-neighbourhood matching so terms like `Bronte`, `College Park`, and `Oak Park` do not automatically accept when they appear as street names.
+- Fixed conflict handling so Gemini `location_type: "conflicting"` remains manual review even when `service_location_text` is empty.
+- Updated conflict detection so street names such as `Bronte Road, Burlington`, `College Park Drive, Toronto`, and `Oak Park Boulevard, Mississauga` resolve as outside Oakville rather than false Oakville conflicts.
+- Changed processed-message writes so only `draft` and `send` mark message IDs as processed; dry runs are intentionally repeatable and separated by `run_id`.
 
 ## Known Tradeoffs
 
 - The project is Apps Script source, not a deployed Apps Script project. Gmail authorization, Script Properties, and manual copy/paste setup are still required.
-- `dry_run` is intentionally safe for Gmail replies and labels, but successful dry-run classification can still mark message IDs as processed in Script Properties for idempotency.
+- `dry_run` is intentionally repeatable and does not mark message IDs as processed, so repeated dry runs can log the same message more than once.
 - `draft` and `send` modes are implemented, but live sending should only be used after reviewing dry-run logs.
 - The resolver uses deterministic text rules rather than real municipal-boundary geocoding.
 - Attachments and rich HTML interpretation are out of scope for this MVP.

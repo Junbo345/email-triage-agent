@@ -116,7 +116,7 @@ Default:
 const ACTION_MODE = "dry_run";
 ```
 
-Use `dry_run` first. It classifies and logs without sending, drafting, or applying Gmail labels. Successful dry-run processing can still record message IDs in Script Properties for idempotency.
+Use `dry_run` first. It classifies and logs without sending, drafting, applying Gmail labels, or marking message IDs as processed. Dry runs are repeatable, so the same messages may appear in multiple dry-run log batches; filter by `run_id` to inspect one execution.
 
 ## 11. Google Sheet Log
 
@@ -181,7 +181,7 @@ Use the assessment generator at:
 
 https://affableapps.com/email-exercise/
 
-Enter the dedicated Gmail address and trigger a batch of test emails. The script reads the Gmail inbox and processes messages that do not already have the processed label.
+Enter the dedicated Gmail address and trigger a batch of test emails. The script reads candidate inbox threads and processes the newest inbound message whose message ID has not been marked processed in non-dry execution.
 
 ## 15. Intent Classification
 
@@ -252,6 +252,8 @@ The `AI_TRIAGE_PROCESSED` Gmail label remains as a visual marker in non-dry mode
 Fixed templates are used so the model cannot invent customer-facing wording.
 
 Only `accept`, `reject`, and `clarify` can create a draft or send an email. `ignore` never replies. `manual_review` never replies; in non-dry modes it applies the `AI_TRIAGE_MANUAL_REVIEW` label and records `queued_for_manual_review`.
+
+Switching from `dry_run` to `draft` can process the same batch because dry runs do not create processed-message state. `draft` and `send` mark message IDs as processed after successful action execution.
 
 ## 20. Logging Behavior
 

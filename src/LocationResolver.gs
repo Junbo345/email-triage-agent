@@ -81,6 +81,16 @@ function resolveServiceLocation_(classification) {
   const locationJurisdiction = normalizeLocationJurisdiction_(classification.location_jurisdiction);
   const locationConfidence = clampNumber_(classification.location_confidence, 0, 1, 0);
 
+  if (locationType === LOCATION_TYPE_CONFLICTING) {
+    return {
+      resolved: raw || LOCATION_UNKNOWN,
+      canonical: LOCATION_UNKNOWN,
+      isOakville: false,
+      confidence: 0.2,
+      reason: "conflicting_locations",
+    };
+  }
+
   if (!raw) {
     return {
       resolved: LOCATION_UNKNOWN,
@@ -91,7 +101,7 @@ function resolveServiceLocation_(classification) {
     };
   }
 
-  if (locationType === LOCATION_TYPE_CONFLICTING || hasConflictingCityReferences_(normalized)) {
+  if (hasConflictingCityReferences_(normalized)) {
     return {
       resolved: raw,
       canonical: LOCATION_UNKNOWN,
@@ -297,6 +307,9 @@ function hasNeighbourhoodContext_(normalized, neighbourhood) {
     new RegExp("\\bhome\\s+in\\s+" + term + "\\b", "i"),
     new RegExp("\\bhouse\\s+in\\s+" + term + "\\b", "i"),
     new RegExp("\\bsite\\s+in\\s+" + term + "\\b", "i"),
+    new RegExp("\\bmay\\s+be\\s+(?:in\\s+)?" + term + "\\b", "i"),
+    new RegExp("\\bcould\\s+be\\s+(?:in\\s+)?" + term + "\\b", "i"),
+    new RegExp("\\bmight\\s+be\\s+(?:in\\s+)?" + term + "\\b", "i"),
   ];
   for (let i = 0; i < patterns.length; i += 1) {
     if (patterns[i].test(normalized)) {
@@ -409,7 +422,9 @@ function isAmbiguousLocation_(normalized) {
 }
 
 function hasConflictingCityReferences_(text) {
-  const oakvilleMentioned = containsAnyNormalizedTerm_(text, ["oakville"]) || containsAnyNormalizedTerm_(text, OAKVILLE_ALIASES) || containsAnyNormalizedTerm_(text, OAKVILLE_NEIGHBOURHOODS);
+  const explicitOakvilleMention = containsAnyNormalizedTerm_(text, ["oakville"]) || containsAnyNormalizedTerm_(text, OAKVILLE_ALIASES);
+  const validOakvilleNeighbourhood = Boolean(getValidOakvilleNeighbourhood_(text));
+  const oakvilleMentioned = explicitOakvilleMention || validOakvilleNeighbourhood;
   const otherCities = getExplicitNonOakvilleCities_(text);
   return oakvilleMentioned && otherCities.length > 0;
 }

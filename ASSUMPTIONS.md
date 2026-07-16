@@ -7,6 +7,7 @@
 - Oakville neighborhood names do not count as Oakville when they are being used as street names, building names, business names, or organization names.
 - A clearly future service at a future Oakville property counts as Oakville.
 - Missing or conflicting locations produce `unknown`.
+- A Gemini `conflicting` location type remains a conflict even when `service_location_text` is empty.
 - Missing locations result in a clarification request.
 - Street addresses, postal codes, intersections, and ambiguous names without confirmed municipality are routed to manual review.
 - Clearly named cities or municipalities may be assessed by Gemini using general geographic knowledge.
@@ -21,6 +22,8 @@
 - The dedicated Gmail account is used only for the assessment.
 - The generator may send repeated or similar messages.
 - Already processed message IDs should not be processed twice.
+- Dry runs do not mark message IDs as processed, so they are repeatable and may log the same messages in multiple `run_id` batches.
+- Draft and send runs mark message IDs as processed after the action succeeds.
 - A new inbound message in an already labeled Gmail thread should still be eligible for processing.
 - Attachments are not required for intent or location classification in the prototype.
 - Google Apps Script is the prototype mailbox adapter.

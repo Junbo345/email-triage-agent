@@ -72,6 +72,24 @@ function runLocalTests() {
   assertEqual_("toronto street oakville", resolvedTorontoStreet.reason, "oakville_match");
   checks.push("toronto street oakville");
 
+  const bronteRoadBurlington = resolveServiceLocation_(makeClassification_("Bronte Road, Burlington", LOCATION_TYPE_STREET_ADDRESS, LOCATION_JURISDICTION_OUTSIDE_OAKVILLE, 0.95));
+  assertEqual_("bronte road burlington reason", bronteRoadBurlington.reason, "outside_oakville");
+  const bronteRoadBurlingtonDecision = decideAction_(makeIntentClassification_(INTENT_SERVICE_REQUEST, 0.95), bronteRoadBurlington);
+  assertEqual_("bronte road burlington decision", bronteRoadBurlingtonDecision.action, ACTION_REJECT);
+  checks.push("bronte road burlington outside");
+
+  const collegeParkDriveToronto = resolveServiceLocation_(makeClassification_("College Park Drive, Toronto", LOCATION_TYPE_STREET_ADDRESS, LOCATION_JURISDICTION_OUTSIDE_OAKVILLE, 0.95));
+  assertEqual_("college park drive toronto reason", collegeParkDriveToronto.reason, "outside_oakville");
+  const collegeParkDriveTorontoDecision = decideAction_(makeIntentClassification_(INTENT_SERVICE_REQUEST, 0.95), collegeParkDriveToronto);
+  assertEqual_("college park drive toronto decision", collegeParkDriveTorontoDecision.action, ACTION_REJECT);
+  checks.push("college park drive toronto outside");
+
+  const oakParkBoulevardMississauga = resolveServiceLocation_(makeClassification_("Oak Park Boulevard, Mississauga", LOCATION_TYPE_STREET_ADDRESS, LOCATION_JURISDICTION_OUTSIDE_OAKVILLE, 0.95));
+  assertEqual_("oak park boulevard mississauga reason", oakParkBoulevardMississauga.reason, "outside_oakville");
+  const oakParkBoulevardMississaugaDecision = decideAction_(makeIntentClassification_(INTENT_SERVICE_REQUEST, 0.95), oakParkBoulevardMississauga);
+  assertEqual_("oak park boulevard mississauga decision", oakParkBoulevardMississaugaDecision.action, ACTION_REJECT);
+  checks.push("oak park boulevard mississauga outside");
+
   assertOutsideCityReject_("Waterloo", "Ontario", "Canada", checks);
   assertOutsideCityReject_("Ottawa", "Ontario", "Canada", checks);
   assertOutsideCityReject_("Montreal", "Quebec", "Canada", checks);
@@ -103,9 +121,23 @@ function runLocalTests() {
   assertEqual_("toronto conflict", resolvedTorontoConflict.reason, "conflicting_locations");
   checks.push("toronto conflict");
 
+  const resolvedEmptyConflict = resolveServiceLocation_(makeClassification_("", LOCATION_TYPE_CONFLICTING, LOCATION_JURISDICTION_UNKNOWN, 0.2));
+  assertEqual_("empty conflict reason", resolvedEmptyConflict.reason, "conflicting_locations");
+  const emptyConflictDecision = decideAction_(makeIntentClassification_(INTENT_SERVICE_REQUEST, 0.95), resolvedEmptyConflict);
+  assertEqual_("empty conflict decision", emptyConflictDecision.action, ACTION_MANUAL_REVIEW);
+  checks.push("empty conflict manual review");
+
+  const resolvedBronteOrBurlington = resolveServiceLocation_(makeClassification_("The property may be in Bronte or Burlington", LOCATION_TYPE_CONFLICTING, LOCATION_JURISDICTION_UNKNOWN, 0.3));
+  assertEqual_("bronte or burlington conflict", resolvedBronteOrBurlington.reason, "conflicting_locations");
+  checks.push("bronte or burlington conflict");
+
   const resolvedOakvilleOrMilton = resolveServiceLocation_(makeClassification_("Oakville or Milton, depending on availability", LOCATION_TYPE_CONFLICTING, LOCATION_JURISDICTION_UNKNOWN, 0.3));
   assertEqual_("oakville or milton", resolvedOakvilleOrMilton.reason, "conflicting_locations");
   checks.push("oakville or milton");
+
+  const resolvedGlenAbbeyOrToronto = resolveServiceLocation_(makeClassification_("The service location could be Glen Abbey or Toronto", LOCATION_TYPE_CONFLICTING, LOCATION_JURISDICTION_UNKNOWN, 0.3));
+  assertEqual_("glen abbey or toronto conflict", resolvedGlenAbbeyOrToronto.reason, "conflicting_locations");
+  checks.push("glen abbey or toronto conflict");
 
   const resolvedMaybeInOakville = resolveServiceLocation_(makeClassification_("maybe in Oakville", LOCATION_TYPE_VAGUE_AREA, LOCATION_JURISDICTION_UNKNOWN, 0.3));
   assertEqual_("maybe in oakville", resolvedMaybeInOakville.reason, "ambiguous_location");
@@ -168,6 +200,14 @@ function runLocalTests() {
   });
   checks.push("invalid action mode");
 
+  assertEqual_("dry run should not mark processed", shouldMarkMessageProcessed_("dry_run"), false);
+  assertEqual_("draft should mark processed", shouldMarkMessageProcessed_("draft"), true);
+  assertEqual_("send should mark processed", shouldMarkMessageProcessed_("send"), true);
+  assertThrows_("invalid mark processed mode", function () {
+    shouldMarkMessageProcessed_("oops");
+  });
+  checks.push("processed-state mode rules");
+
   const messages = [
     makeFakeMessage_("same-message", false),
     makeFakeMessage_("new-message", false),
@@ -195,6 +235,40 @@ function runLocalTests() {
   });
   assertEqual_("self sent ignored", selfSent, null);
   checks.push("self sent ignored");
+
+  const processedIds = {};
+  const workflowMessages = [makeFakeMessage_("workflow-message", false)];
+  const dryRunEligible = getNewestUnprocessedInboundMessageFromList_(workflowMessages, function (msg) {
+    return msg.selfSent;
+  }, function (messageId) {
+    return Boolean(processedIds[messageId]);
+  });
+  assertEqual_("dry run initial eligibility", dryRunEligible.getId(), "workflow-message");
+  if (shouldMarkMessageProcessed_("dry_run")) {
+    processedIds[dryRunEligible.getId()] = true;
+  }
+  const draftEligible = getNewestUnprocessedInboundMessageFromList_(workflowMessages, function (msg) {
+    return msg.selfSent;
+  }, function (messageId) {
+    return Boolean(processedIds[messageId]);
+  });
+  assertEqual_("same message eligible after dry run", draftEligible.getId(), "workflow-message");
+  if (shouldMarkMessageProcessed_("draft")) {
+    processedIds[draftEligible.getId()] = true;
+  }
+  const skippedAfterDraft = getNewestUnprocessedInboundMessageFromList_(workflowMessages, function (msg) {
+    return msg.selfSent;
+  }, function (messageId) {
+    return Boolean(processedIds[messageId]);
+  });
+  assertEqual_("same message skipped after draft", skippedAfterDraft, null);
+  const newerAfterDraft = getNewestUnprocessedInboundMessageFromList_([makeFakeMessage_("workflow-message", false), makeFakeMessage_("workflow-new-message", false)], function (msg) {
+    return msg.selfSent;
+  }, function (messageId) {
+    return Boolean(processedIds[messageId]);
+  });
+  assertEqual_("newer message eligible after draft", newerAfterDraft.getId(), "workflow-new-message");
+  checks.push("dry run to draft idempotency workflow");
 
   const reply = buildReply_(
     { action: ACTION_ACCEPT, reason: "oakville" },

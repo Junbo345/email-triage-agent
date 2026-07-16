@@ -27,9 +27,11 @@ function processInbox() {
       logProcessingStarted_({ runId, payload, classification, location, decision });
       const execution = executeAction_(thread, decision, reply);
 
-      markMessageProcessed_(payload.messageId);
-      if (processedLabel) {
-        thread.addLabel(processedLabel);
+      if (shouldMarkMessageProcessed_(ACTION_MODE)) {
+        markMessageProcessed_(payload.messageId);
+        if (processedLabel) {
+          thread.addLabel(processedLabel);
+        }
       }
 
       try {
@@ -118,6 +120,11 @@ function isMessageProcessed_(messageId) {
 function markMessageProcessed_(messageId) {
   if (!messageId) return;
   PropertiesService.getScriptProperties().setProperty(getProcessedMessagePropertyKey_(messageId), "true");
+}
+
+function shouldMarkMessageProcessed_(mode) {
+  validateActionModeValue_(mode);
+  return mode === "draft" || mode === "send";
 }
 
 function getProcessedMessagePropertyKey_(messageId) {
