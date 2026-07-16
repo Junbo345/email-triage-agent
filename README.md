@@ -22,7 +22,7 @@ The system must:
 - determine whether the location is in Oakville;
 - take the correct action;
 - log the classification, evidence, location result, action, and execution outcome;
-- avoid duplicate processing with a Gmail label.
+- avoid duplicate processing with message-level processed state.
 
 ## 3. Architecture
 
@@ -37,6 +37,8 @@ Email body cleaning
         ->
 LLM structured extraction
         ->
+LLM semantic jurisdiction assessment
+        ->
 Deterministic Oakville resolver
         ->
 Deterministic decision engine
@@ -45,7 +47,7 @@ Fixed reply template
         ->
 Dry run, Gmail draft, or Gmail reply
         ->
-Processed Gmail label and audit log
+Message-level dedupe, Gmail labels, and audit log
 ```
 
 ## 4. Why Google Apps Script
@@ -114,7 +116,7 @@ Default:
 const ACTION_MODE = "dry_run";
 ```
 
-Use `dry_run` first. It classifies and logs without sending or drafting.
+Use `dry_run` first. It classifies and logs without sending, drafting, or applying Gmail labels. Successful dry-run processing can still record message IDs in Script Properties for idempotency.
 
 ## 11. Google Sheet Log
 
@@ -132,6 +134,7 @@ The first row contains the audit columns. Each processed message appends one row
 - cleaned body sent to Gemini;
 - predicted intent;
 - Gemini evidence, confidence, uncertainty reason, raw response, and normalized JSON;
+- Gemini location type, jurisdiction, city, province, country, and location confidence;
 - extracted location text;
 - resolved location;
 - canonical Oakville decision;
@@ -152,7 +155,11 @@ This checks:
 
 - intent normalization;
 - Oakville location resolution;
-- non-Oakville rejection;
+- high-confidence outside-city rejection;
+- low-confidence and unverified-location manual review;
+- neighbourhood-versus-street-name handling;
+- message-level idempotency helpers;
+- execution safety for `manual_review`, `ignore`, and invalid action modes;
 - clarification logic;
 - manual-review logic;
 - reply template filling.
@@ -182,6 +189,12 @@ The LLM returns structured JSON with:
 
 - `intent`
 - `service_location_text`
+- `location_type`
+- `location_jurisdiction`
+- `location_city`
+- `location_province`
+- `location_country`
+- `location_confidence`
 - `evidence`
 - `confidence`
 - `uncertainty_reason`
@@ -194,6 +207,8 @@ The allowed intent values are:
 
 The LLM does not decide final email actions.
 
+For clearly named cities or municipalities, Gemini may use general geographic knowledge to classify the jurisdiction as `oakville`, `outside_oakville`, or `unknown`. Deterministic code still makes the final action decision.
+
 ## 16. Service-Location Extraction
 
 The classifier only extracts the location mentioned in the email. It does not guess from:
@@ -204,34 +219,39 @@ The classifier only extracts the location mentioned in the email. It does not gu
 - attachments;
 - historical context.
 
-If the location is missing or too vague, the resolver returns `unknown`.
+If the location is missing, too vague, conflicting, or only an address/intersection/postal code without a confirmed municipality, the resolver returns a conservative unverified or unknown result.
 
 ## 17. Deterministic Oakville Resolution
 
 The resolver uses simple rules:
 
 - Oakville and known Oakville neighborhoods count as Oakville;
-- explicit outside locations are not Oakville;
-- ambiguous locations become `unknown`;
+- clearly identified high-confidence outside cities or municipalities count as outside Oakville;
+- street addresses, postal codes, intersections, and ambiguous names are not automatically accepted or rejected;
+- Oakville neighbourhood keywords do not trigger automatic acceptance when they are used as street names, such as `Bronte Road` or `College Park Drive`;
 - the decision engine handles uncertainty instead of guessing.
 
 ## 18. Duplicate Prevention
 
-The script searches for:
+The script searches candidate inbox threads with:
 
 ```text
-in:inbox -label:AI_TRIAGE_PROCESSED
+in:inbox
 ```
 
-After successful processing, the thread is labeled `AI_TRIAGE_PROCESSED`. That prevents reprocessing on later runs.
+It then performs message-level deduplication in code using `message.getId()` and Script Properties. A processed Gmail thread can still be inspected later if the customer sends a new inbound message in that same thread.
+
+The `AI_TRIAGE_PROCESSED` Gmail label remains as a visual marker in non-dry modes, but it is not the only idempotency mechanism.
 
 ## 19. Draft and Send Behavior
 
-- `dry_run`: log only
+- `dry_run`: classify and log without Gmail replies or labels
 - `draft`: create a draft reply
 - `send`: send the reply immediately
 
 Fixed templates are used so the model cannot invent customer-facing wording.
+
+Only `accept`, `reject`, and `clarify` can create a draft or send an email. `ignore` never replies. `manual_review` never replies; in non-dry modes it applies the `AI_TRIAGE_MANUAL_REVIEW` label and records `queued_for_manual_review`.
 
 ## 20. Logging Behavior
 
@@ -246,6 +266,9 @@ Each `processInbox()` call creates one `run_id`. Filter the `run_id` column in `
 - Attachments are ignored.
 - HTML cleanup is basic.
 - The Oakville resolver uses deterministic text rules, not geospatial boundary data.
+- Without an external geographic lookup API, the system cannot determine the municipal boundary of every arbitrary street address.
+- The resolver does not claim to identify every world location with 100% accuracy.
+- Automatic rejection applies only to clearly identified, high-confidence non-Oakville cities or municipalities.
 
 ## 22. Privacy and Security
 

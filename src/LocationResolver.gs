@@ -77,6 +77,9 @@ const STREET_SUFFIXES = [
 function resolveServiceLocation_(classification) {
   const raw = normalizeString_(classification.service_location_text || classification.location_text || "");
   const normalized = normalizeLocationText_(raw);
+  const locationType = normalizeLocationType_(classification.location_type);
+  const locationJurisdiction = normalizeLocationJurisdiction_(classification.location_jurisdiction);
+  const locationConfidence = clampNumber_(classification.location_confidence, 0, 1, 0);
 
   if (!raw) {
     return {
@@ -88,7 +91,17 @@ function resolveServiceLocation_(classification) {
     };
   }
 
-  if (isAmbiguousLocation_(normalized)) {
+  if (locationType === LOCATION_TYPE_CONFLICTING || hasConflictingCityReferences_(normalized)) {
+    return {
+      resolved: raw,
+      canonical: LOCATION_UNKNOWN,
+      isOakville: false,
+      confidence: 0.2,
+      reason: "conflicting_locations",
+    };
+  }
+
+  if (isAmbiguousLocation_(normalized) || locationType === LOCATION_TYPE_VAGUE_AREA) {
     return {
       resolved: raw,
       canonical: LOCATION_UNKNOWN,
@@ -101,10 +114,11 @@ function resolveServiceLocation_(classification) {
   const oakvilleNegated = isNegatedCityReference_(normalized, "oakville");
   const nonOakvilleNegated = hasAnyNegatedNonOakvilleCity_(normalized);
 
-  const explicitOakvilleMatch = getExplicitOakvilleMatch_(raw, normalized);
+  const explicitOakvilleMatch = getExplicitOakvilleCityMatch_(raw, normalized);
+  const explicitOakvilleNeighbourhoodMatch = getExplicitOakvilleNeighbourhoodMatch_(raw, normalized);
   const explicitNonOakvilleMatch = getExplicitNonOakvilleMatch_(raw, normalized);
 
-  if ((oakvilleNegated || nonOakvilleNegated) && (explicitOakvilleMatch || explicitNonOakvilleMatch)) {
+  if ((oakvilleNegated || nonOakvilleNegated) && (explicitOakvilleMatch || explicitOakvilleNeighbourhoodMatch || explicitNonOakvilleMatch)) {
     return {
       resolved: raw,
       canonical: LOCATION_UNKNOWN,
@@ -114,7 +128,7 @@ function resolveServiceLocation_(classification) {
     };
   }
 
-  if (explicitOakvilleMatch && explicitNonOakvilleMatch) {
+  if ((explicitOakvilleMatch || explicitOakvilleNeighbourhoodMatch) && explicitNonOakvilleMatch) {
     return {
       resolved: raw,
       canonical: LOCATION_UNKNOWN,
@@ -128,8 +142,32 @@ function resolveServiceLocation_(classification) {
     return explicitOakvilleMatch;
   }
 
+  if (explicitOakvilleNeighbourhoodMatch) {
+    return explicitOakvilleNeighbourhoodMatch;
+  }
+
   if (explicitNonOakvilleMatch) {
     return explicitNonOakvilleMatch;
+  }
+
+  if (isHighConfidenceOutsideCityOrMunicipality_(classification)) {
+    return {
+      resolved: raw,
+      canonical: buildJurisdictionCanonical_(classification) || raw,
+      isOakville: false,
+      confidence: locationConfidence,
+      reason: "outside_oakville",
+    };
+  }
+
+  if (isHighConfidenceOakvilleLocation_(classification)) {
+    return {
+      resolved: raw,
+      canonical: "Oakville, Ontario, Canada",
+      isOakville: true,
+      confidence: locationConfidence,
+      reason: locationType === LOCATION_TYPE_OAKVILLE_NEIGHBOURHOOD ? "gemini_oakville_neighbourhood_match" : "gemini_oakville_match",
+    };
   }
 
   if (looksLikeCanadianPostalCode_(normalized) || looksLikeStreetAddress_(normalized) || looksLikeIntersection_(normalized)) {
@@ -139,6 +177,16 @@ function resolveServiceLocation_(classification) {
       isOakville: false,
       confidence: 0.4,
       reason: "unverified_address",
+    };
+  }
+
+  if (locationJurisdiction !== LOCATION_JURISDICTION_UNKNOWN && locationConfidence < 0.8) {
+    return {
+      resolved: raw,
+      canonical: raw,
+      isOakville: false,
+      confidence: locationConfidence,
+      reason: "low_confidence_location",
     };
   }
 
@@ -178,7 +226,7 @@ function containsAnyNormalizedTerm_(text, terms) {
   return false;
 }
 
-function getExplicitOakvilleMatch_(raw, normalized) {
+function getExplicitOakvilleCityMatch_(raw, normalized) {
   if (isNegatedCityReference_(normalized, "oakville") && !containsAnyNormalizedTerm_(normalized, EXPLICIT_NON_OAKVILLE_CITIES)) {
     return null;
   }
@@ -203,7 +251,12 @@ function getExplicitOakvilleMatch_(raw, normalized) {
     };
   }
 
-  if (containsAnyNormalizedTerm_(normalized, OAKVILLE_NEIGHBOURHOODS)) {
+  return null;
+}
+
+function getExplicitOakvilleNeighbourhoodMatch_(raw, normalized) {
+  const neighbourhood = getValidOakvilleNeighbourhood_(normalized);
+  if (neighbourhood) {
     return {
       resolved: raw,
       canonical: "Oakville, Ontario, Canada",
@@ -212,8 +265,92 @@ function getExplicitOakvilleMatch_(raw, normalized) {
       reason: "oakville_neighbourhood_match",
     };
   }
-
   return null;
+}
+
+function getValidOakvilleNeighbourhood_(normalized) {
+  for (let i = 0; i < OAKVILLE_NEIGHBOURHOODS.length; i += 1) {
+    const neighbourhood = OAKVILLE_NEIGHBOURHOODS[i];
+    if (!containsNormalizedTerm_(normalized, neighbourhood)) {
+      continue;
+    }
+    if (looksLikeStreetNameTerm_(normalized, neighbourhood)) {
+      continue;
+    }
+    if (isWholeLocationTerm_(normalized, neighbourhood) || hasOakvilleContext_(normalized) || hasNeighbourhoodContext_(normalized, neighbourhood)) {
+      return neighbourhood;
+    }
+  }
+  return "";
+}
+
+function hasOakvilleContext_(normalized) {
+  return containsNormalizedTerm_(normalized, "oakville");
+}
+
+function hasNeighbourhoodContext_(normalized, neighbourhood) {
+  const term = escapeRegex_(normalizeLocationText_(neighbourhood)).replace(/\s+/g, "\\s+");
+  const patterns = [
+    new RegExp("\\bin\\s+" + term + "\\b", "i"),
+    new RegExp("\\blocated\\s+in\\s+" + term + "\\b", "i"),
+    new RegExp("\\bproperty\\s+in\\s+" + term + "\\b", "i"),
+    new RegExp("\\bhome\\s+in\\s+" + term + "\\b", "i"),
+    new RegExp("\\bhouse\\s+in\\s+" + term + "\\b", "i"),
+    new RegExp("\\bsite\\s+in\\s+" + term + "\\b", "i"),
+  ];
+  for (let i = 0; i < patterns.length; i += 1) {
+    if (patterns[i].test(normalized)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function isWholeLocationTerm_(normalized, term) {
+  return normalized === normalizeLocationText_(term);
+}
+
+function isHighConfidenceOutsideCityOrMunicipality_(classification) {
+  const locationType = normalizeLocationType_(classification.location_type);
+  const jurisdiction = normalizeLocationJurisdiction_(classification.location_jurisdiction);
+  const confidence = clampNumber_(classification.location_confidence, 0, 1, 0);
+  return jurisdiction === LOCATION_JURISDICTION_OUTSIDE_OAKVILLE &&
+    confidence >= 0.8 &&
+    (locationType === LOCATION_TYPE_CITY || locationType === LOCATION_TYPE_MUNICIPALITY);
+}
+
+function isHighConfidenceOakvilleLocation_(classification) {
+  const locationType = normalizeLocationType_(classification.location_type);
+  const jurisdiction = normalizeLocationJurisdiction_(classification.location_jurisdiction);
+  const confidence = clampNumber_(classification.location_confidence, 0, 1, 0);
+  const normalized = normalizeLocationText_(classification.service_location_text || classification.location_text || "");
+  if (jurisdiction !== LOCATION_JURISDICTION_OAKVILLE || confidence < 0.8) {
+    return false;
+  }
+  if (locationType === LOCATION_TYPE_CITY || locationType === LOCATION_TYPE_MUNICIPALITY) {
+    return true;
+  }
+  return locationType === LOCATION_TYPE_OAKVILLE_NEIGHBOURHOOD && confidence >= 0.85 && !containsStreetNamedOakvilleNeighbourhood_(normalized);
+}
+
+function buildJurisdictionCanonical_(classification) {
+  const parts = [
+    normalizeString_(classification.location_city || ""),
+    normalizeString_(classification.location_province || ""),
+    normalizeString_(classification.location_country || ""),
+  ].filter(function (part) {
+    return Boolean(part);
+  });
+  return parts.join(", ");
+}
+
+function containsStreetNamedOakvilleNeighbourhood_(normalized) {
+  for (let i = 0; i < OAKVILLE_NEIGHBOURHOODS.length; i += 1) {
+    if (looksLikeStreetNameTerm_(normalized, OAKVILLE_NEIGHBOURHOODS[i])) {
+      return true;
+    }
+  }
+  return false;
 }
 
 function getExplicitNonOakvilleMatch_(raw, normalized) {

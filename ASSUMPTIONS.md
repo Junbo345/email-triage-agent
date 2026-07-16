@@ -4,18 +4,24 @@
 - The sender's current residence is not automatically the service location.
 - Email-signature addresses are not automatically service locations.
 - Oakville neighborhoods such as Bronte count as Oakville.
+- Oakville neighborhood names do not count as Oakville when they are being used as street names, building names, business names, or organization names.
 - A clearly future service at a future Oakville property counts as Oakville.
 - Missing or conflicting locations produce `unknown`.
 - Missing locations result in a clarification request.
+- Street addresses, postal codes, intersections, and ambiguous names without confirmed municipality are routed to manual review.
+- Clearly named cities or municipalities may be assessed by Gemini using general geographic knowledge.
+- Automatic rejection requires a high-confidence non-Oakville city or municipality, not just an arbitrary address-like string.
+- The system does not claim to determine municipal boundaries for every arbitrary street address without a geographic lookup API.
 - Uncertain intent results in manual review.
 - Non-service messages receive no reply.
+- Manual-review messages receive no automatic customer-facing reply.
 - Fixed templates prevent unsupported promises.
 - The business serves Oakville only.
 - No distance buffer outside Oakville is assumed.
 - The dedicated Gmail account is used only for the assessment.
 - The generator may send repeated or similar messages.
-- Already processed threads should not be processed twice.
+- Already processed message IDs should not be processed twice.
+- A new inbound message in an already labeled Gmail thread should still be eligible for processing.
 - Attachments are not required for intent or location classification in the prototype.
 - Google Apps Script is the prototype mailbox adapter.
 - Microsoft 365 Shared Mailbox plus Microsoft Graph is the preferred production mailbox approach for a tax-services company.
-

@@ -8,7 +8,10 @@
 - human-review queue
 - staff approval before sending
 - municipal-boundary or geospatial validation
+- optional address lookup/geocoding only after privacy, cost, and reliability review
 - stronger address normalization
+- stronger stale processed-message cleanup for Script Properties
+- log compaction or archival for long-running inboxes
 - monitoring and alerting
 - retry handling
 - dead-letter processing
@@ -29,4 +32,3 @@
 - rate limiting
 - abuse protection
 - incident-response procedures
-

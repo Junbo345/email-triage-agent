@@ -25,69 +25,109 @@ const LOG_HEADERS = [
   "gemini_uncertainty_reason",
   "gemini_raw_response",
   "gemini_normalized_json",
+  "location_type",
+  "location_jurisdiction",
+  "location_city",
+  "location_province",
+  "location_country",
+  "location_confidence",
+  "status",
 ];
 
+function logProcessingStarted_(record) {
+  logStatusRow_({
+    runId: record.runId,
+    status: "processing_started",
+    payload: record.payload,
+    classification: record.classification,
+    location: record.location,
+    decision: record.decision,
+    execution: { mode: ACTION_MODE, performed: false, kind: "" },
+    error: "",
+  });
+}
+
 function logProcessingResult_(record) {
-  const sheet = getOrCreateLogSheet_();
-  sheet.appendRow([
-    new Date(),
-    record.payload.threadId,
-    record.payload.messageId,
-    record.payload.from,
-    record.payload.to,
-    record.payload.subject,
-    record.classification.intent,
-    record.classification.service_location_text,
-    record.location.resolved,
-    record.location.canonical,
-    record.location.isOakville,
-    record.location.reason,
-    record.decision.action,
-    record.decision.reason,
-    record.execution.mode,
-    record.execution.performed,
-    record.execution.kind || "",
-    "",
-    record.runId,
-    record.payload.rawBody || "",
-    record.payload.body || "",
-    serializeForLog_(record.classification.evidence),
-    record.classification.confidence,
-    record.classification.uncertainty_reason,
-    record.classification.gemini_raw_response || "",
-    serializeForLog_(record.classification),
-  ]);
+  logStatusRow_({
+    runId: record.runId,
+    status: "action_completed",
+    payload: record.payload,
+    classification: record.classification,
+    location: record.location,
+    decision: record.decision,
+    execution: record.execution,
+    error: "",
+  });
+}
+
+function logLoggingFailed_(record) {
+  logStatusRow_({
+    runId: record.runId,
+    status: "logging_failed",
+    payload: record.payload,
+    classification: record.classification,
+    location: record.location,
+    decision: record.decision,
+    execution: record.execution,
+    error: String(record.err),
+  });
 }
 
 function logFailure_(thread, err, runId, payload) {
+  logStatusRow_({
+    runId: runId,
+    status: "processing_failed",
+    payload: payload || { threadId: thread.getId(), messageId: "", from: "", to: "", subject: "failure", body: "", rawBody: "" },
+    classification: null,
+    location: null,
+    decision: { action: "", reason: "" },
+    execution: { mode: ACTION_MODE, performed: false, kind: "" },
+    error: String(err),
+  });
+}
+
+function logStatusRow_(record) {
   const sheet = getOrCreateLogSheet_();
+  const payload = record.payload || {};
+  const classification = record.classification || {};
+  const location = record.location || {};
+  const decision = record.decision || {};
+  const execution = record.execution || {};
+
   sheet.appendRow([
     new Date(),
-    thread.getId(),
-    payload && payload.messageId ? payload.messageId : "",
-    payload && payload.from ? payload.from : "",
-    payload && payload.to ? payload.to : "",
-    payload && payload.subject ? payload.subject : "failure",
-    "",
-    payload && payload.body ? payload.body : "",
-    "",
-    "",
-    "",
-    "",
-    "",
-    "",
-    ACTION_MODE,
-    false,
-    "",
-    String(err),
-    runId,
-    payload && payload.rawBody ? payload.rawBody : "",
-    payload && payload.body ? payload.body : "",
-    "",
-    "",
-    "",
-    "",
-    "",
+    payload.threadId || "",
+    payload.messageId || "",
+    payload.from || "",
+    payload.to || "",
+    payload.subject || "",
+    classification.intent || "",
+    classification.service_location_text || "",
+    location.resolved || "",
+    location.canonical || "",
+    location.isOakville === true ? true : location.isOakville === false ? false : "",
+    location.reason || "",
+    decision.action || "",
+    decision.reason || "",
+    execution.mode || ACTION_MODE,
+    execution.performed === true ? true : execution.performed === false ? false : "",
+    execution.kind || "",
+    record.error || "",
+    record.runId || "",
+    payload.rawBody || "",
+    payload.body || "",
+    serializeForLog_(classification.evidence),
+    classification.confidence == null ? "" : classification.confidence,
+    classification.uncertainty_reason || "",
+    classification.gemini_raw_response || "",
+    serializeForLog_(classification),
+    classification.location_type || "",
+    classification.location_jurisdiction || "",
+    classification.location_city || "",
+    classification.location_province || "",
+    classification.location_country || "",
+    classification.location_confidence == null ? "" : classification.location_confidence,
+    record.status || "",
   ]);
 }
 

@@ -6,7 +6,7 @@
 - Chose to create a separate `email-triage-agent` repo scaffold rather than retrofit the existing codebase.
 - Selected Google Apps Script as the implementation target because it can read Gmail directly with `GmailApp`, create Gmail drafts/replies, create Drive/Sheets audit logs, and be manually pasted into a new Apps Script project quickly.
 - Chose a dedicated Gmail account for the assessment so generated test emails stay isolated from personal mail and the script can be authorized safely.
-- Kept `ACTION_MODE` set to `dry_run` by default so the first runs classify and log only, with no Gmail drafts or sends.
+- Kept `ACTION_MODE` set to `dry_run` by default so the first runs classify and log without Gmail drafts or sends.
 - Added fixed reply templates instead of letting the model write customer-facing replies. The model classifies and extracts data only; deterministic code decides and replies.
 - Added deterministic local tests for intent normalization, Oakville location handling, non-Oakville rejection, clarification, manual review, and reply template filling.
 - Created documentation files for assumptions, test summary, next steps, and setup instructions.
@@ -21,7 +21,7 @@
 - Hardened the classifier prompt against prompt injection by stating that email subject/body are untrusted data and that the model must classify only according to our rules.
 - Clarified that outside-service-area inquiries are still `service_request`; the deterministic resolver, not Gemini, decides whether to reject them.
 - Fixed an early inbox-processing issue where self-sent detection could skip valid inbound messages. The final check only treats messages as self-sent when the sender matches the active user.
-- Decided that `dry_run` should avoid Gmail write actions, including processed-label writes. This makes dry runs repeatable, but repeated dry runs can reprocess the same inbox threads.
+- Decided that `dry_run` should avoid Gmail label/reply writes. Later message-ID deduplication added Script Properties writes so repeated runs do not reply or repeatedly process the same message ID.
 - Added Google Sheets audit logging with run-level metadata so each `processInbox()` call can be filtered by `run_id`.
 - Added raw email body, cleaned body, Gemini raw response, normalized Gemini JSON, evidence, confidence, and uncertainty reason to the audit log so classification mistakes can be explained later.
 
@@ -38,11 +38,19 @@
 - Chose manual review for conflicting or unverified locations rather than pretending to know. This is slightly more conservative than the simplest assessment requirement, but safer for a real inbox.
 - Kept missing-location service requests as clarification instead of rejection because the service location has not been established.
 - Left `TEST_SUMMARY.md` as a manual-results table to fill after running the official generator against the Gmail account.
+- Expanded Gemini's structured output to include semantic location fields such as `location_type`, `location_jurisdiction`, `location_city`, and `location_confidence`.
+- Chose Gemini general geographic knowledge for clearly named cities and municipalities instead of adding a geographic lookup API, keeping the MVP small and free-tier friendly.
+- Kept deterministic code responsible for the final action. Gemini can say a city appears outside Oakville, but rejection still requires high-confidence city or municipality evidence.
+- Changed `manual_review` so it applies an internal label and never sends or drafts a customer-facing reply.
+- Added strict `ACTION_MODE` validation so an invalid mode cannot accidentally fall through to sending.
+- Changed deduplication from thread-label-only to message-ID-based Script Properties so a new inbound message in an existing thread can still be processed.
+- Added `processing_started`, `action_completed`, `logging_failed`, and `processing_failed` audit statuses to reduce duplicate-reply risk if final logging fails after an action completes.
+- Tightened Oakville-neighbourhood matching so terms like `Bronte`, `College Park`, and `Oak Park` do not automatically accept when they appear as street names.
 
 ## Known Tradeoffs
 
 - The project is Apps Script source, not a deployed Apps Script project. Gmail authorization, Script Properties, and manual copy/paste setup are still required.
-- `dry_run` is intentionally safe, but it does not apply the processed label, so dry-run batches can be logged more than once.
+- `dry_run` is intentionally safe for Gmail replies and labels, but successful dry-run classification can still mark message IDs as processed in Script Properties for idempotency.
 - `draft` and `send` modes are implemented, but live sending should only be used after reviewing dry-run logs.
 - The resolver uses deterministic text rules rather than real municipal-boundary geocoding.
 - Attachments and rich HTML interpretation are out of scope for this MVP.
