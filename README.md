@@ -124,10 +124,14 @@ The logger creates or reuses a sheet named:
 
 The first row contains the audit columns. Each processed message appends one row with:
 
+- run ID for the current `processInbox()` execution;
 - thread and message IDs;
 - sender and recipient;
 - subject;
+- raw plain-text email body;
+- cleaned body sent to Gemini;
 - predicted intent;
+- Gemini evidence, confidence, uncertainty reason, raw response, and normalized JSON;
 - extracted location text;
 - resolved location;
 - canonical Oakville decision;
@@ -232,6 +236,8 @@ Fixed templates are used so the model cannot invent customer-facing wording.
 ## 20. Logging Behavior
 
 Every processed message logs the classification and action decision to Google Sheets. Failures are also logged so one bad email does not stop the run.
+
+Each `processInbox()` call creates one `run_id`. Filter the `run_id` column in `AI Triage Log` to the latest value to see only the current run. The `email_body` column stores the raw plain-text Gmail body for audit review, while the classifier still uses the cleaned body internally.
 
 ## 21. Known Limitations
 

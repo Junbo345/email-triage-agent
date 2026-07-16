@@ -1,18 +1,20 @@
 function processInbox() {
+  const runId = createRunId_();
   const threads = GmailApp.search(`in:inbox -label:${PROCESSED_LABEL_NAME}`, 0, MAX_THREADS_PER_RUN);
   const label = ACTION_MODE === "dry_run" ? null : getOrCreateProcessedLabel();
 
   threads.forEach((thread) => {
+    let payload = null;
     try {
       const message = getNewestInboundMessage_(thread);
       if (!message) {
-        logSkip_(thread, "no_inbound_message");
+        logSkip_(thread, "no_inbound_message", runId, null);
         return;
       }
 
-      const payload = extractMessageData_(thread, message);
+      payload = extractMessageData_(thread, message);
       if (!payload.body && !payload.subject) {
-        logSkip_(thread, "empty_message");
+        logSkip_(thread, "empty_message", runId, payload);
         return;
       }
 
@@ -22,12 +24,12 @@ function processInbox() {
       const reply = buildReply_(decision, payload, classification, location);
       const execution = executeAction_(thread, decision, reply);
 
-      logProcessingResult_({ payload, classification, location, decision, execution });
+      logProcessingResult_({ runId, payload, classification, location, decision, execution });
       if (label) {
         thread.addLabel(label);
       }
     } catch (err) {
-      logFailure_(thread, err);
+      logFailure_(thread, err, runId, payload);
     }
   });
 }
@@ -48,6 +50,7 @@ function isSelfSent_(message) {
 }
 
 function extractMessageData_(thread, message) {
+  const plainBody = message.getPlainBody();
   return {
     threadId: thread.getId(),
     messageId: message.getId(),
@@ -55,7 +58,8 @@ function extractMessageData_(thread, message) {
     to: message.getTo(),
     subject: message.getSubject(),
     date: message.getDate(),
-    body: cleanEmailBody_(message.getPlainBody()),
+    body: cleanEmailBody_(plainBody),
+    rawBody: plainBody,
   };
 }
 
@@ -76,14 +80,14 @@ function getOrCreateProcessedLabel() {
   return GmailApp.createLabel(PROCESSED_LABEL_NAME);
 }
 
-function logSkip_(thread, reason) {
+function logSkip_(thread, reason, runId, payload) {
   const sheet = getOrCreateLogSheet_();
   sheet.appendRow([
     new Date(),
     thread.getId(),
-    "",
-    "",
-    "",
+    payload && payload.messageId ? payload.messageId : "",
+    payload && payload.from ? payload.from : "",
+    payload && payload.to ? payload.to : "",
     "skipped",
     "",
     reason,
@@ -97,5 +101,17 @@ function logSkip_(thread, reason) {
     false,
     "",
     "",
+    runId,
+    payload && payload.rawBody ? payload.rawBody : "",
+    payload && payload.body ? payload.body : "",
+    "",
+    "",
+    "",
+    "",
+    "",
   ]);
+}
+
+function createRunId_() {
+  return new Date().toISOString();
 }
