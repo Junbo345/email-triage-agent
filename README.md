@@ -20,15 +20,17 @@ The implementation is intentionally small and explainable so it can be demonstra
 - [AI Assistance Transcript](AI_ASSISTANCE_TRANSCRIPT.md)
 - [Assumptions](ASSUMPTIONS.md)
 - [Next Steps](NEXT_STEPS.md)
-- Demo video: `<add Loom or video URL before submission>`
+- [Debrief Guide](DEBRIEF_GUIDE.md)
+- Demo video: submitted separately with the assessment materials
 
 ## Current Submission Status
 
 - The end-to-end Gmail workflow has been run.
 - The latest evaluated generator batch used `send` mode.
-- 11 final message outcomes were manually reviewed.
-- The repository contains the seven written deliverables requested for the assessment.
-- The demo-video link still needs to be added before submission.
+- Eleven final message outcomes were manually reviewed.
+- The repository contains the agent and all required supporting written artifacts.
+- The demo video will be submitted separately with the assessment materials.
+- A redacted native AI conversation export will also be submitted separately.
 
 ## 2. Assessment Requirements
 
@@ -243,7 +245,7 @@ If the location is missing, too vague, conflicting, or only an address/intersect
 
 The resolver uses simple rules:
 
-- Oakville and known Oakville neighborhoods count as Oakville;
+- Oakville and known Oakville neighbourhoods count as Oakville;
 - clearly identified high-confidence outside cities or municipalities count as outside Oakville;
 - street addresses, postal codes, intersections, and ambiguous names are not automatically accepted or rejected;
 - Oakville neighbourhood keywords do not trigger automatic acceptance when they are used as street names, such as `Bronte Road` or `College Park Drive`;
@@ -311,3 +313,19 @@ For a real tax or professional-services company, the mailbox layer would likely 
 - Log sheet creation error: verify the Apps Script project can access Drive and Sheets.
 - Invalid model JSON: inspect the Gemini response and keep `dry_run` enabled until stable.
 - Unexpected replies: confirm `ACTION_MODE` is still `dry_run` or `draft`.
+
+## Final Submission Checklist
+
+- [x] Agent source code
+- [x] Design summary
+- [x] Test summary
+- [x] Decision log
+- [x] Selected AI-assistance transcript
+- [x] Assumptions list
+- [x] One-day next-steps note
+- [x] Debrief preparation guide
+- [x] Local deterministic tests passed: 53 checks
+- [x] Google Apps Script tests passed: 53 checks
+- [x] Official generator batch manually evaluated
+- [ ] Demo video submitted separately
+- [ ] Redacted native AI conversation export submitted separately

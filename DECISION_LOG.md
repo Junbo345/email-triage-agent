@@ -56,11 +56,14 @@
 - Evaluated an official generator batch in `send` mode.
 - Manually reviewed 11 final message outcomes.
 - Recorded final outcomes of 4 accept, 3 reject, and 4 ignore.
+- Confirmed the Apps Script `runLocalTests()` result as `passed: true`, `count: 53`.
 - Confirmed no errors appeared in the final execution rows.
 - Retained earlier resolver and routing failures in the test summary so the final successful batch is not presented as evidence of perfect accuracy.
 - Replaced the long production backlog with a short one-day priority list.
 - Added a submission-artifact index to the README.
-- Left a visible placeholder for the demo-video URL, which still needs to be added before submission.
+- Documented that the demo video will be submitted separately with the assessment materials.
+- Documented that the redacted native AI conversation export will be submitted separately with the assessment materials.
+- Documented that the raw audit spreadsheet will not be published because it contains email content and mailbox metadata.
 - Noted that the final successful batch does not demonstrate universal location accuracy.
 
 ## Known Tradeoffs

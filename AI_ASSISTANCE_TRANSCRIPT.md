@@ -9,8 +9,8 @@ It includes the main product, design, architecture, safety, and implementation e
 - This file contains selected verbatim excerpts from the actual AI-assisted development conversation.
 - Routine setup and repetitive operational messages were omitted.
 - The excerpts focus on architecture, prompting, testing failures, corrections, rejected changes, and final requirement review.
-- Screenshots or a native conversation export should accompany the repository where possible.
-- Sensitive values must be redacted before any transcript screenshot or export is shared.
+- A redacted native conversation export will be submitted separately with the assessment materials.
+- Sensitive values must be redacted before any transcript export is shared.
 
 ## Repository Creation
 
@@ -472,7 +472,14 @@ This file was rewritten as selected verbatim excerpts from the actual conversati
 - The user reported failing resolver tests and required them to pass before continuing.
 - The user rejected an unnecessary processed-label ordering change, so that fix was discarded rather than kept.
 - The user required transcript excerpts to be real conversation history rather than summary-style notes.
-- The user requested repeated requirement-gap reviews against the assessment materials before final submission.
+- The user requested repeated requirement-gap reviews against the assessment materials before final documentation cleanup.
 
-Supporting screenshots/export:
-`<add redacted screenshots or conversation export before submission>`
+## Supporting Conversation Export
+
+This Markdown file contains selected verbatim excerpts from the actual
+AI-assisted development conversation. It focuses on exchanges that materially
+affected architecture, prompting, testing, corrections, rejected changes, and
+requirement validation.
+
+No conversation screenshots are included. A redacted native conversation
+export will be submitted separately with the assessment materials.
