@@ -12,6 +12,24 @@ This project reads messages from a dedicated Gmail inbox, classifies whether eac
 
 The implementation is intentionally small and explainable so it can be demonstrated in a short assessment debrief.
 
+## Submission Artifacts
+
+- [Design Summary](DESIGN_SUMMARY.md)
+- [Test Summary](TEST_SUMMARY.md)
+- [Decision Log](DECISION_LOG.md)
+- [AI Assistance Transcript](AI_ASSISTANCE_TRANSCRIPT.md)
+- [Assumptions](ASSUMPTIONS.md)
+- [Next Steps](NEXT_STEPS.md)
+- Demo video: `<add Loom or video URL before submission>`
+
+## Current Submission Status
+
+- The end-to-end Gmail workflow has been run.
+- The latest evaluated generator batch used `send` mode.
+- 11 final message outcomes were manually reviewed.
+- The repository contains the seven written deliverables requested for the assessment.
+- The demo-video link still needs to be added before submission.
+
 ## 2. Assessment Requirements
 
 The system must:

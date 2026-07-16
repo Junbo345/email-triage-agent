@@ -1,34 +1,14 @@
 # Next Steps
 
-- Microsoft 365 shared-mailbox integration
-- Microsoft Graph API
-- Azure Entra ID application authentication
-- role-based access control
-- managed identities or secure secret storage
-- human-review queue
-- staff approval before sending
-- municipal-boundary or geospatial validation
-- optional address lookup/geocoding only after privacy, cost, and reliability review
-- stronger address normalization
-- stronger stale processed-message cleanup for Script Properties
-- log compaction or archival for long-running inboxes
-- monitoring and alerting
-- retry handling
-- dead-letter processing
-- improved idempotency
-- prompt versioning
-- evaluation datasets
-- regression tests
-- model fallback
-- multilingual support
-- HTML and quoted-reply cleanup
-- attachment classification
-- attachment malware scanning
-- sensitive-data redaction
-- enterprise-approved model hosting
-- retention policies
-- audit trail
-- cost tracking
-- rate limiting
-- abuse protection
-- incident-response procedures
+With one more day, I would first add a human approval queue for all
+manual-review cases and improve address verification for street-only
+locations, intersections, and postal-code-only requests.
+
+I would then add retry handling and monitoring for Gmail, Gemini,
+Google Sheets, and processed-message state failures. I would also
+expand the evaluation set with ambiguous, adversarial, multilingual,
+and same-thread follow-up messages.
+
+Before allowing unattended live sending, I would run another staged
+batch with staff approval enabled and define alerts for failed,
+low-confidence, or unexpectedly high-volume decisions.

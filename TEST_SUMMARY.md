@@ -39,3 +39,38 @@ The log contains both `processing_started` and final execution rows for processe
 | T009 | HVAC service quote - Mississauga property | service_request | service_request | Mississauga, outside Oakville | Mississauga (Dundas and Hurontario area) / Mississauga, Ontario, Canada | reject | reject | Correct |  | Outside-service-area request correctly rejected. |
 | T010 | Your June industry update + job board access | non_service | non_service | none | unknown | ignore | ignore | Correct |  | Newsletter/job-board email correctly ignored. |
 | T011 | Delivery Status Notification (Failure) | non_service | non_service | none | unknown | ignore | ignore | Correct |  | Mail delivery bounce correctly treated as non-service and ignored. |
+
+## Failures Found During Development
+
+| Case | Incorrect Behavior | Root Cause | Fix |
+|---|---|---|---|
+| Toronto and Oakville conflict | A message mentioning Toronto and an Oakville service location was resolved as outside Oakville instead of conflicting. | Explicit outside-city detection ran before conflict handling. | Conflicting-location handling was prioritized and routed to manual review. |
+| Intersection detection | `Trafalgar and Dundas` was resolved as `unverified_location` instead of `unverified_address`. | The deterministic intersection recognizer was too narrow. | Intersection recognition was expanded and covered by regression tests. |
+| Burlington near Spencer Smith Park | A clearly outside-Oakville Burlington request was sent to location clarification. | The `vague_area` type was prioritized over a high-confidence `outside_oakville` jurisdiction with a concrete city. | High-confidence outside-city evidence with a concrete city is now resolved as outside Oakville before vague-area clarification. |
+| Oakville neighbourhood word inside a street name | Locations such as `Bronte Road, Burlington` risked being treated as an Oakville neighbourhood conflict. | Neighbourhood keywords were originally detected without first checking whether they were part of a street name. | Street-name validation is now reused before treating a neighbourhood word as Oakville evidence. |
+
+The final 11-message generator batch produced no incorrect final
+outcomes, but this should not be interpreted as proof of perfect
+accuracy. The system remains conservative for unverified addresses and
+the known limitations below still apply.
+
+## Deterministic Test Harness
+
+`runLocalTests()` covers classifier schema normalization, Oakville and
+outside-city resolution, ambiguous and conflicting locations,
+neighbourhood-versus-street-name handling, action safety, dry-run
+behavior, and message-level deduplication.
+
+Result from the final local deterministic harness execution:
+
+- Passed: true
+- Check count: 53
+
+Result from the final Apps Script editor execution:
+
+- Passed: `<confirm in Apps Script before submission>`
+- Check count: `<confirm in Apps Script before submission>`
+
+Submission note: include a screenshot of the final Apps Script test
+result and a redacted screenshot or export of the `AI Triage Log` Google
+Sheet with the final submission if appropriate.

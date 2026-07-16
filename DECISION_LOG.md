@@ -51,6 +51,18 @@
 - Changed processed-message writes so only `draft` and `send` mark message IDs as processed; dry runs are intentionally repeatable and separated by `run_id`.
 - Corrected dry-run manual-review execution semantics so simulated manual review logs `dry_run_manual_review` with `performed = false`; only `draft` and `send` apply the manual-review Gmail label and count as performed external actions.
 
+## 2026-07-16 - Final Submission Preparation
+
+- Evaluated an official generator batch in `send` mode.
+- Manually reviewed 11 final message outcomes.
+- Recorded final outcomes of 4 accept, 3 reject, and 4 ignore.
+- Confirmed no errors appeared in the final execution rows.
+- Retained earlier resolver and routing failures in the test summary so the final successful batch is not presented as evidence of perfect accuracy.
+- Replaced the long production backlog with a short one-day priority list.
+- Added a submission-artifact index to the README.
+- Left a visible placeholder for the demo-video URL, which still needs to be added before submission.
+- Noted that the final successful batch does not demonstrate universal location accuracy.
+
 ## Known Tradeoffs
 
 - The project is Apps Script source, not a deployed Apps Script project. Gmail authorization, Script Properties, and manual copy/paste setup are still required.
@@ -59,4 +71,7 @@
 - `draft` and `send` modes are implemented, but live sending should only be used after reviewing dry-run logs.
 - The resolver uses deterministic text rules rather than real municipal-boundary geocoding.
 - Attachments and rich HTML interpretation are out of scope for this MVP.
-- The current test summary requires manual completion after official generator runs.
+- The official generator test summary has been completed for the latest
+  evaluated run. Earlier development failures and their root causes are
+  documented separately so the final successful batch is not presented
+  as evidence of perfect accuracy.

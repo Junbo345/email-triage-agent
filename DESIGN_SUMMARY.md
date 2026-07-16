@@ -30,6 +30,53 @@ Google Apps Script was chosen because the assessment centers on Gmail and can be
 
 The repository is source code for manual paste into Apps Script. It does not use `clasp`, Docker, GitHub Actions, or external Node dependencies.
 
+## Alternatives Considered
+
+### Gmail API with Python
+
+Advantages:
+
+- conventional service architecture;
+- easier unit testing and package management;
+- more control over OAuth tokens and message retrieval.
+
+Reasons not selected:
+
+- required OAuth setup;
+- token storage;
+- hosting;
+- deployment;
+- more assessment time spent on infrastructure rather than the core loop.
+
+### n8n, Zapier, or Power Automate
+
+Advantages:
+
+- fast low-code workflow construction;
+- built-in email connectors.
+
+Reasons not selected:
+
+- classification and idempotency logic would be less transparent during the debrief;
+- possible free-tier or connector limitations;
+- harder to present the exact deterministic logic in source form.
+
+### Microsoft Graph Shared Mailbox
+
+Advantages:
+
+- likely a stronger production fit for a professional-services company;
+- shared-mailbox and enterprise identity support.
+
+Reasons not selected:
+
+- required Entra application setup and permissions;
+- excessive setup for a small Gmail-based assessment prototype.
+
+Google Apps Script was selected because it provided the shortest path
+to a real inbox, real Gmail replies, audit logging, and an explainable
+end-to-end prototype within the assessment time window.
+
 ## Classification Design
 
 Gemini is used only for structured extraction, not final action decisions.
@@ -195,6 +242,22 @@ The code is complete as source, but the following steps are still manual:
 - use the official virtual email generator;
 - review `AI Triage Log`;
 - switch from `dry_run` to `draft` or `send` only after inspection.
+
+## Monitoring and Primary Failure Risks
+
+Primary runtime risks include:
+
+- Gemini HTTP failures or malformed JSON responses;
+- Gmail send success followed by processed-state or logging failure;
+- incorrect high-confidence location classification;
+- processed-state growth in Script Properties;
+- unexpected message volume or reply loops;
+- Google Sheets logging failures.
+
+The most concerning production failure would be sending an incorrect
+acceptance or rejection to a real customer. In production, that risk
+would need staff approval gates, monitoring, and rollback procedures
+before unattended live sending.
 
 ## Known Limitations
 

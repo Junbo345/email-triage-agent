@@ -4,6 +4,14 @@ This file records selected, verbatim excerpts from the AI-assisted development c
 
 It includes the main product, design, architecture, safety, and implementation exchanges. It intentionally omits routine GitHub authentication, local environment setup, repeated commit/push requests, and small debugging exchanges that did not materially change the design.
 
+## How to Read This Artifact
+
+- This file contains selected verbatim excerpts from the actual AI-assisted development conversation.
+- Routine setup and repetitive operational messages were omitted.
+- The excerpts focus on architecture, prompting, testing failures, corrections, rejected changes, and final requirement review.
+- Screenshots or a native conversation export should accompany the repository where possible.
+- Sensitive values must be redacted before any transcript screenshot or export is shared.
+
 ## Repository Creation
 
 **User:**
@@ -457,3 +465,14 @@ A summary-style transcript file was added.
 **Corrected outcome:**
 
 This file was rewritten as selected verbatim excerpts from the actual conversation, focused on main design and implementation decisions.
+
+## Examples of AI Evaluation and Redirection
+
+- The user required outside-area inquiries to remain `service_request`, which changed the prompt and resolver expectations.
+- The user reported failing resolver tests and required them to pass before continuing.
+- The user rejected an unnecessary processed-label ordering change, so that fix was discarded rather than kept.
+- The user required transcript excerpts to be real conversation history rather than summary-style notes.
+- The user requested repeated requirement-gap reviews against the assessment materials before final submission.
+
+Supporting screenshots/export:
+`<add redacted screenshots or conversation export before submission>`

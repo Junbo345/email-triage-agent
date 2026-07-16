@@ -10,12 +10,17 @@
 - A Gemini `conflicting` location type remains a conflict even when `service_location_text` is empty.
 - Missing locations result in a clarification request.
 - Street addresses, postal codes, intersections, and ambiguous names without confirmed municipality are routed to manual review.
+- A named street without a confirmed municipality may be sent to manual review rather than accepted or rejected automatically.
 - Clearly named cities or municipalities may be assessed by Gemini using general geographic knowledge.
+- Gemini general geographic knowledge is acceptable for clearly named cities, but it is not treated as municipal-boundary verification.
 - Automatic rejection requires a high-confidence non-Oakville city or municipality, not just an arbitrary address-like string.
 - The system does not claim to determine municipal boundaries for every arbitrary street address without a geographic lookup API.
+- Missing location may produce clarification even though the original exercise only explicitly defines accept and reject replies.
 - Uncertain intent results in manual review.
+- Uncertain or conflicting cases are intentionally routed to manual review to avoid unsafe automatic replies.
 - Non-service messages receive no reply.
 - Manual-review messages receive no automatic customer-facing reply.
+- Manual review is an assessment extension beyond the strict two-reply happy path.
 - Fixed templates prevent unsupported promises.
 - The business serves Oakville only.
 - No distance buffer outside Oakville is assumed.
@@ -26,5 +31,6 @@
 - Draft and send runs mark message IDs as processed after the action succeeds.
 - A new inbound message in an already labeled Gmail thread should still be eligible for processing.
 - Attachments are not required for intent or location classification in the prototype.
+- The official generator is assumed not to require attachment analysis.
 - Google Apps Script is the prototype mailbox adapter.
 - Microsoft 365 Shared Mailbox plus Microsoft Graph is the preferred production mailbox approach for a tax-services company.
