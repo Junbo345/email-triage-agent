@@ -111,6 +111,16 @@ function resolveServiceLocation_(classification) {
     };
   }
 
+  if (isHighConfidenceOutsideCityOrMunicipality_(classification)) {
+    return {
+      resolved: raw,
+      canonical: buildJurisdictionCanonical_(classification) || raw,
+      isOakville: false,
+      confidence: locationConfidence,
+      reason: "outside_oakville",
+    };
+  }
+
   if (isAmbiguousLocation_(normalized) || locationType === LOCATION_TYPE_VAGUE_AREA) {
     return {
       resolved: raw,
@@ -158,16 +168,6 @@ function resolveServiceLocation_(classification) {
 
   if (explicitNonOakvilleMatch) {
     return explicitNonOakvilleMatch;
-  }
-
-  if (isHighConfidenceOutsideCityOrMunicipality_(classification)) {
-    return {
-      resolved: raw,
-      canonical: buildJurisdictionCanonical_(classification) || raw,
-      isOakville: false,
-      confidence: locationConfidence,
-      reason: "outside_oakville",
-    };
   }
 
   if (isHighConfidenceOakvilleLocation_(classification)) {
@@ -327,9 +327,10 @@ function isHighConfidenceOutsideCityOrMunicipality_(classification) {
   const locationType = normalizeLocationType_(classification.location_type);
   const jurisdiction = normalizeLocationJurisdiction_(classification.location_jurisdiction);
   const confidence = clampNumber_(classification.location_confidence, 0, 1, 0);
+  const city = normalizeLocationText_(classification.location_city || "");
   return jurisdiction === LOCATION_JURISDICTION_OUTSIDE_OAKVILLE &&
     confidence >= 0.8 &&
-    (locationType === LOCATION_TYPE_CITY || locationType === LOCATION_TYPE_MUNICIPALITY);
+    (locationType === LOCATION_TYPE_CITY || locationType === LOCATION_TYPE_MUNICIPALITY || Boolean(city));
 }
 
 function isHighConfidenceOakvilleLocation_(classification) {

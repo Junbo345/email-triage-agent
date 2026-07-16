@@ -117,6 +117,20 @@ function runLocalTests() {
   assertEqual_("burlington city", resolvedBurlingtonCity.reason, "outside_oakville");
   checks.push("burlington city");
 
+  const resolvedBurlingtonVagueArea = resolveServiceLocation_({
+    service_location_text: "Burlington near Spencer Smith Park",
+    location_type: LOCATION_TYPE_VAGUE_AREA,
+    location_jurisdiction: LOCATION_JURISDICTION_OUTSIDE_OAKVILLE,
+    location_city: "Burlington",
+    location_province: "Ontario",
+    location_country: "Canada",
+    location_confidence: 0.9,
+  });
+  assertEqual_("burlington vague area", resolvedBurlingtonVagueArea.reason, "outside_oakville");
+  const burlingtonVagueAreaDecision = decideAction_(makeIntentClassification_(INTENT_SERVICE_REQUEST, 1), resolvedBurlingtonVagueArea);
+  assertEqual_("burlington vague area decision", burlingtonVagueAreaDecision.action, ACTION_REJECT);
+  checks.push("burlington vague area reject");
+
   const resolvedTorontoConflict = resolveServiceLocation_(makeClassification_("I live in Toronto, but the job is in Oakville", LOCATION_TYPE_CONFLICTING, LOCATION_JURISDICTION_UNKNOWN, 0.3));
   assertEqual_("toronto conflict", resolvedTorontoConflict.reason, "conflicting_locations");
   checks.push("toronto conflict");
