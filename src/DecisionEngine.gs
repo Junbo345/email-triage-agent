@@ -53,9 +53,10 @@ function executeActionForMode_(mode, thread, decision, reply, manualReviewLabel)
     return { mode: mode, performed: false, action: decision.action, skipped: true, kind: "ignored" };
   }
   if (decision.action === ACTION_MANUAL_REVIEW) {
-    if (mode !== "dry_run") {
-      thread.addLabel(manualReviewLabel || getOrCreateManualReviewLabel());
+    if (mode === "dry_run") {
+      return { mode: mode, performed: false, action: decision.action, kind: "dry_run_manual_review" };
     }
+    thread.addLabel(manualReviewLabel || getOrCreateManualReviewLabel());
     return { mode: mode, performed: true, action: decision.action, kind: "queued_for_manual_review" };
   }
   if (!canCustomerReplyAction_(decision.action)) {

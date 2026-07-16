@@ -176,13 +176,35 @@ function runLocalTests() {
   checks.push("ignore decision");
 
   const fakeLabel = { name: MANUAL_REVIEW_LABEL_NAME };
-  const manualThread = makeFakeThread_();
-  const manualExecution = executeActionForMode_("send", manualThread, { action: ACTION_MANUAL_REVIEW, reason: "test" }, { body: "should not send" }, fakeLabel);
-  assertEqual_("manual review execution kind", manualExecution.kind, "queued_for_manual_review");
-  assertEqual_("manual review sends", manualThread.sent, 0);
-  assertEqual_("manual review drafts", manualThread.drafts, 0);
-  assertEqual_("manual review labels", manualThread.labels, 1);
-  checks.push("manual review does not reply");
+  const dryRunManualThread = makeFakeThread_();
+  const dryRunManualExecution = executeActionForMode_("dry_run", dryRunManualThread, { action: ACTION_MANUAL_REVIEW, reason: "test" }, { body: "must not send" }, fakeLabel);
+  assertEqual_("dry run manual mode", dryRunManualExecution.mode, "dry_run");
+  assertEqual_("dry run manual performed", dryRunManualExecution.performed, false);
+  assertEqual_("dry run manual kind", dryRunManualExecution.kind, "dry_run_manual_review");
+  assertEqual_("dry run manual sends", dryRunManualThread.sent, 0);
+  assertEqual_("dry run manual drafts", dryRunManualThread.drafts, 0);
+  assertEqual_("dry run manual labels", dryRunManualThread.labels, 0);
+  checks.push("dry run manual review simulated");
+
+  const draftManualThread = makeFakeThread_();
+  const draftManualExecution = executeActionForMode_("draft", draftManualThread, { action: ACTION_MANUAL_REVIEW, reason: "test" }, { body: "must not draft" }, fakeLabel);
+  assertEqual_("draft manual mode", draftManualExecution.mode, "draft");
+  assertEqual_("draft manual performed", draftManualExecution.performed, true);
+  assertEqual_("draft manual kind", draftManualExecution.kind, "queued_for_manual_review");
+  assertEqual_("draft manual sends", draftManualThread.sent, 0);
+  assertEqual_("draft manual drafts", draftManualThread.drafts, 0);
+  assertEqual_("draft manual labels", draftManualThread.labels, 1);
+  checks.push("draft manual review queued");
+
+  const sendManualThread = makeFakeThread_();
+  const sendManualExecution = executeActionForMode_("send", sendManualThread, { action: ACTION_MANUAL_REVIEW, reason: "test" }, { body: "must not send" }, fakeLabel);
+  assertEqual_("send manual mode", sendManualExecution.mode, "send");
+  assertEqual_("send manual performed", sendManualExecution.performed, true);
+  assertEqual_("send manual kind", sendManualExecution.kind, "queued_for_manual_review");
+  assertEqual_("send manual sends", sendManualThread.sent, 0);
+  assertEqual_("send manual drafts", sendManualThread.drafts, 0);
+  assertEqual_("send manual labels", sendManualThread.labels, 1);
+  checks.push("send manual review queued");
 
   const ignoreThread = makeFakeThread_();
   const ignoreExecution = executeActionForMode_("send", ignoreThread, { action: ACTION_IGNORE, reason: "test" }, { body: "" }, fakeLabel);

@@ -49,11 +49,13 @@
 - Fixed conflict handling so Gemini `location_type: "conflicting"` remains manual review even when `service_location_text` is empty.
 - Updated conflict detection so street names such as `Bronte Road, Burlington`, `College Park Drive, Toronto`, and `Oak Park Boulevard, Mississauga` resolve as outside Oakville rather than false Oakville conflicts.
 - Changed processed-message writes so only `draft` and `send` mark message IDs as processed; dry runs are intentionally repeatable and separated by `run_id`.
+- Corrected dry-run manual-review execution semantics so simulated manual review logs `dry_run_manual_review` with `performed = false`; only `draft` and `send` apply the manual-review Gmail label and count as performed external actions.
 
 ## Known Tradeoffs
 
 - The project is Apps Script source, not a deployed Apps Script project. Gmail authorization, Script Properties, and manual copy/paste setup are still required.
 - `dry_run` is intentionally repeatable and does not mark message IDs as processed, so repeated dry runs can log the same message more than once.
+- Dry-run manual-review rows are simulations only; the internal `AI_TRIAGE_MANUAL_REVIEW` Gmail label is applied only in `draft` or `send` mode.
 - `draft` and `send` modes are implemented, but live sending should only be used after reviewing dry-run logs.
 - The resolver uses deterministic text rules rather than real municipal-boundary geocoding.
 - Attachments and rich HTML interpretation are out of scope for this MVP.

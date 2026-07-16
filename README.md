@@ -251,7 +251,9 @@ The `AI_TRIAGE_PROCESSED` Gmail label remains as a visual marker in non-dry mode
 
 Fixed templates are used so the model cannot invent customer-facing wording.
 
-Only `accept`, `reject`, and `clarify` can create a draft or send an email. `ignore` never replies. `manual_review` never replies; in non-dry modes it applies the `AI_TRIAGE_MANUAL_REVIEW` label and records `queued_for_manual_review`.
+Only `accept`, `reject`, and `clarify` can create a draft or send an email. `ignore` never replies.
+
+`manual_review` never creates a customer-facing draft or sent reply. In `dry_run`, manual review is simulated only: no Gmail label is applied, `performed` is `false`, and `execution_kind` is `dry_run_manual_review`. In `draft` and `send`, manual review applies the internal `AI_TRIAGE_MANUAL_REVIEW` label and records `queued_for_manual_review` with `performed` set to `true`.
 
 Switching from `dry_run` to `draft` can process the same batch because dry runs do not create processed-message state. `draft` and `send` mark message IDs as processed after successful action execution.
 
